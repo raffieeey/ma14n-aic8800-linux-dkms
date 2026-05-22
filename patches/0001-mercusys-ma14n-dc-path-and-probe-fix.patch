@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: raffieeey <raffiyuden@gmail.com>
+Date: Thu, 22 May 2026 14:30:00 +0800
+Subject: [PATCH 1/2] mercusys ma14n: route 2c4e:0114 through dc path and fail probe cleanly
+
+---
+ aic8800_fdrv/aicwf_usb.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/aic8800_fdrv/aicwf_usb.c b/aic8800_fdrv/aicwf_usb.c
+index 866a43e..a7f69bd 100644
+--- a/aic8800_fdrv/aicwf_usb.c
++++ b/aic8800_fdrv/aicwf_usb.c
+@@ -1965,14 +1965,14 @@ int aicwf_usb_chipmatch(struct aic_usb_dev *usb_dev, uint16_t vid, uint16_t pid
+ 		usb_dev->chipid = PRODUCT_ID_AIC8801;
+ 		AICWFDBG(LOGINFO, "%s USE AIC8801\r\n", __func__);
+ 		return 0;
+-	}else if(pid == USB_PRODUCT_ID_AIC8800DC){
++	}else if(pid == USB_PRODUCT_ID_AIC8800DC
++	        || (vid == USB_VENDOR_ID_MERCUSYS && pid == USB_PRODUCT_ID_MERCUSYS)){
+ 		usb_dev->chipid = PRODUCT_ID_AIC8800DC;
+ 		AICWFDBG(LOGINFO, "%s USE AIC8800DC\r\n", __func__);
+ 		return 0;
+ 	}else if(pid == USB_PRODUCT_ID_AIC8800DW || pid == USB_PRODUCT_ID_TP
+ 	 || pid == USB_PRODUCT_ID_AIC8800FC ||
+         (vid == USB_VENDOR_ID_TP2 && pid == USB_PRODUCT_ID_TP2)
+-        || (vid == USB_VENDOR_ID_MERCUSYS && pid == USB_PRODUCT_ID_MERCUSYS)
+         || (vid == USB_VENDOR_ID_MERCUSYS && pid == USB_PRODUCT_ID_MERCUSYS_MA14H)){
+         usb_dev->chipid = PRODUCT_ID_AIC8800DW;
+ 		AICWFDBG(LOGINFO, "%s USE AIC8800DW\r\n", __func__);
+@@ -2007,9 +2007,9 @@ static int aicwf_usb_probe(struct usb_interface *intf, const struct usb_device_
+ 	ret = aicwf_usb_chipmatch(usb_dev, id->idVendor, id->idProduct);
+ 	
+ 	if (ret < 0) {
+-		AICWFDBG(LOGERROR, "%s pid:0x%04X vid:0x%04X unsupport\n", 
++		AICWFDBG(LOGERROR, "%s vid:0x%04X pid:0x%04X unsupport\n",
+ 			__func__, id->idVendor, id->idProduct);
+-		goto out_free_bus;
++		goto out_free;
+ 	}
+ 
+     ret = aicwf_parse_usb(usb_dev, intf);
+-- 
+2.43.0

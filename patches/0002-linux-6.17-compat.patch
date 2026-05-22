@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: raffieeey <raffiyuden@gmail.com>
+Date: Thu, 22 May 2026 14:31:00 +0800
+Subject: [PATCH 2/2] linux 6.17 compat for timer and cfg80211 changes
+
+---
+ aic8800_fdrv/rwnx_compat.h | 20 ++++++++++++++++++++
+ aic8800_fdrv/rwnx_defs.h   |  1 +
+ aic8800_fdrv/rwnx_main.c   | 14 +++++++++++++-
+ 3 files changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/aic8800_fdrv/rwnx_compat.h b/aic8800_fdrv/rwnx_compat.h
+index ee395bc..49bf99a 100644
+--- a/aic8800_fdrv/rwnx_compat.h
++++ b/aic8800_fdrv/rwnx_compat.h
+@@ -23,6 +23,20 @@
+ #define _RWNX_COMPAT_H_
+ #include <linux/version.h>
+ 
++#ifndef from_timer
++#define from_timer(var, callback_timer, timer_field) \
++    container_of(callback_timer, typeof(*var), timer_field)
++#endif
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
++#ifndef del_timer_sync
++#define del_timer_sync(timer) timer_delete_sync(timer)
++#endif
++#ifndef del_timer
++#define del_timer(timer) timer_delete(timer)
++#endif
++#endif
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
+ #error "Minimum kernel version supported is 3.10"
+ #endif
+@@ -198,6 +212,13 @@
+     cfg80211_cqm_rssi_notify(dev, event, gfp)
+ #endif
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#define cfg80211_rx_spurious_frame(dev, addr, gfp) \
++    cfg80211_rx_spurious_frame(dev, addr, -1, gfp)
++#define cfg80211_rx_unexpected_4addr_frame(dev, addr, gfp) \
++    cfg80211_rx_unexpected_4addr_frame(dev, addr, -1, gfp)
++#endif
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 0)
+ #define ieee80211_amsdu_to_8023s(skb, list, addr, iftype, extra_headroom, check_da, check_sa) \
+     ieee80211_amsdu_to_8023s(skb, list, addr, iftype, extra_headroom, false)
+diff --git a/aic8800_fdrv/rwnx_defs.h b/aic8800_fdrv/rwnx_defs.h
+index 626f9c3..e8a6193 100644
+--- a/aic8800_fdrv/rwnx_defs.h
++++ b/aic8800_fdrv/rwnx_defs.h
+@@ -17,6 +17,7 @@
+ #include <linux/device.h>
+ #include <linux/dmapool.h>
+ #include <linux/skbuff.h>
++#include <linux/timer.h>
+ #include <net/cfg80211.h>
+ #include <linux/slab.h>
+ 
+diff --git a/aic8800_fdrv/rwnx_main.c b/aic8800_fdrv/rwnx_main.c
+index c5932d4..a36980e 100644
+--- a/aic8800_fdrv/rwnx_main.c
++++ b/aic8800_fdrv/rwnx_main.c
+@@ -4791,8 +4791,15 @@
+  *	have changed. The actual parameter values are available in
+  *	struct wiphy. If returning an error, no value should be changed.
+  */
+-static int rwnx_cfg80211_set_wiphy_params(struct wiphy *wiphy, u32 changed)
++static int rwnx_cfg80211_set_wiphy_params(struct wiphy *wiphy,
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++                                          int radio_idx,
++#endif
++                                          u32 changed)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++    (void)radio_idx;
++#endif
+     return 0;
+ }
+ 
+@@ -4808,11 +4815,17 @@
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+  struct wireless_dev *wdev,
+ #endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++                                      int radio_idx,
++#endif
+                                       enum nl80211_tx_power_setting type, int mbm)
+ {
+     #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
+     struct wireless_dev *wdev = NULL;
+     #endif
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++    (void)radio_idx;
++#endif
+     struct rwnx_hw *rwnx_hw = wiphy_priv(wiphy);
+     struct rwnx_vif *vif;
+     s8 pwr;
+-- 
+2.43.0
