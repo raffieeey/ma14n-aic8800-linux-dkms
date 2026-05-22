@@ -62,7 +62,10 @@ fi
 sudo dkms remove -m aic8800-ma14n -v 6.4.3.0-ma14n1 --all >/dev/null 2>&1 || true
 sudo dkms add -m aic8800-ma14n -v 6.4.3.0-ma14n1
 sudo dkms build -m aic8800-ma14n -v 6.4.3.0-ma14n1
-sudo dkms install -m aic8800-ma14n -v 6.4.3.0-ma14n1
+# Force replacement is intentional here: this driver keeps the upstream/vendor
+# module version string, so DKMS may otherwise refuse to overwrite an existing
+# same-version module already present under /lib/modules.
+sudo dkms install -m aic8800-ma14n -v 6.4.3.0-ma14n1 --force
 
 sudo modprobe -r aic8800_fdrv aic_load_fw 2>/dev/null || true
 sudo modprobe aic_load_fw || true

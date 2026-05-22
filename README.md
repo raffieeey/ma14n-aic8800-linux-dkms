@@ -56,7 +56,8 @@ The main issues I hit were:
 2. Install prerequisites and DKMS.
 3. Let the script extract/patch/package the driver locally.
 4. DKMS registers the source under `/usr/src/` and builds modules for your kernel.
-5. Firmware and the udev mode-switch rule are installed from your local vendor package.
+5. The installer uses `dkms install --force` so the patched out-of-tree module can replace an existing same-version vendor module already present under `/lib/modules/`.
+6. Firmware and the udev mode-switch rule are installed from your local vendor package.
 
 ### Example
 ```bash
@@ -85,6 +86,7 @@ journalctl -b | grep -i aic
 - This was tested on one machine and one adapter family. If your hardware or kernel is different, you may need additional fixes.
 - If you already have a working network adapter, keep it connected while testing this one.
 - Firmware still comes from the vendor package you downloaded locally.
+- The installer intentionally uses `dkms install --force` because the patched driver keeps the vendor module version string (`6.4.3.0`), and plain DKMS install may otherwise leave an older same-version module in place.
 
 ## Credits
 Credits to the original vendor/AICSemi/RivieraWaves driver authors for the underlying driver code. This repo only documents and automates a local patch-and-package workflow around that vendor release.
